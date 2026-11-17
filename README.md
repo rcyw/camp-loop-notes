@@ -19,7 +19,7 @@ and is prepared for hosting via GitHub Pages at
   schemes.
 - **Organize**: pin notes, archive/unarchive, move to trash and restore.
 - **Search** titles and content with ranked, case- and accent-insensitive
-  results (for example, `cafe` matches `Café`).
+  results (for example, `cafe` matches `Café` and `sao` matches `São`).
 - **Backup**: JSON export and validated import (merge or replace with a
   preview of consequences). Malformed imports are rejected without touching
   your existing notes.
