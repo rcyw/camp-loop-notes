@@ -156,16 +156,28 @@ export function applyImport(existing, incoming, mode = "merge") {
 const TITLE_RANK = 2;
 const BODY_RANK = 1;
 
+/**
+ * Fold text for matching: normalize to NFD so precomposed accents (Café) and
+ * combining accents (Cafe\u0301) become the same form, strip combining marks,
+ * and lowercase. This changes only the search key — authored text is untouched.
+ */
+function fold(text) {
+  return String(text)
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase();
+}
+
 function titleMatches(note, term) {
-  return note.title.toLowerCase().includes(term);
+  return fold(note.title).includes(term);
 }
 function bodyMatches(note, term) {
-  return note.body.toLowerCase().includes(term);
+  return fold(note.body).includes(term);
 }
 
 /** Ranked text search across title and content. Returns scored matches. */
 export function searchNotes(notes, query) {
-  const term = typeof query === "string" ? query.trim().toLowerCase() : "";
+  const term = typeof query === "string" ? fold(query.trim()) : "";
   if (!term) return notes.map((n) => ({ note: n, score: 0 }));
   const out = [];
   for (const note of notes) {

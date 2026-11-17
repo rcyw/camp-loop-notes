@@ -133,6 +133,66 @@ test("searchNotes searches trashed notes and empty query returns all", () => {
   assert.equal(searchNotes(notes, "").length, 2);
 });
 
+test("searchNotes ignores precomposed accents in titles and bodies", () => {
+  const notes = [
+    createNote({ title: "Café", body: "naïve" }),
+    createNote({ title: "São Paulo", body: "other" }),
+    createNote({ title: "plain", body: "São Vicente" }),
+  ];
+  const cafe = searchNotes(notes, "cafe");
+  assert.equal(cafe.length, 1);
+  assert.equal(cafe[0].note.title, "Café");
+
+  const naive = searchNotes(notes, "naive");
+  assert.equal(naive.length, 1);
+  assert.equal(naive[0].note.body, "naïve");
+
+  const sao = searchNotes(notes, "sao");
+  assert.equal(sao.length, 2);
+
+  // Case-insensitive matching is still preserved.
+  assert.equal(searchNotes(notes, "CAFÉ").length, 1);
+});
+
+test("searchNotes ignores combining accents in titles and bodies", () => {
+  const cafeTitle = "Cafe\u0301"; // "Cafe" + combining acute accent
+  const naiveBody = "nai\u0308ve"; // "nai" + combining diaeresis + "ve"
+  const saoBody = "Sa\u0303o Paulo"; // "Sa" + combining tilde + "o"
+  const notes = [
+    createNote({ title: cafeTitle, body: "" }),
+    createNote({ title: "x", body: `${naiveBody} ${saoBody}` }),
+  ];
+
+  const cafe = searchNotes(notes, "cafe");
+  assert.equal(cafe.length, 1);
+  assert.equal(cafe[0].note.title, cafeTitle);
+
+  const naive = searchNotes(notes, "naive");
+  assert.equal(naive.length, 1);
+  assert.equal(naive[0].note.body, `${naiveBody} ${saoBody}`);
+
+  assert.equal(searchNotes(notes, "sao").length, 1);
+
+  // A combining-accent query also matches a precomposed note.
+  const precomposed = createNote({ title: "Café" });
+  assert.equal(searchNotes([precomposed], "Cafe\u0301").length, 1);
+});
+
+test("search folding preserves exact authored text in storage and export", () => {
+  const note = createNote({ title: "Café", body: "naïve  \n\nSão  \n" });
+  searchNotes([note], "cafe");
+  assert.equal(note.title, "Café");
+  assert.equal(note.body, "naïve  \n\nSão  \n");
+
+  const exported = JSON.parse(toExport([note]));
+  assert.equal(exported.notes[0].title, "Café");
+  assert.equal(exported.notes[0].body, "naïve  \n\nSão  \n");
+
+  const md = noteMarkdownExport(note);
+  assert.equal(md.text, note.body);
+  assert.equal(md.filename, "Café.md");
+});
+
 test("orderForList pins first then updated desc", () => {
   const a = createNote({ title: "a" });
   const b = createNote({ title: "b", pinned: true });
