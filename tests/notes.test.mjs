@@ -12,6 +12,8 @@ import {
   isTrashEmpty,
   deleteForever,
   emptyTrash,
+  notesInView,
+  topSearchResult,
 } from "../src/store.mjs";
 
 import { escapeHtml, renderMarkdown } from "../src/markdown.mjs";
@@ -131,6 +133,37 @@ test("searchNotes searches trashed notes and empty query returns all", () => {
   ];
   assert.equal(searchNotes(notes, "gone").length, 1);
   assert.equal(searchNotes(notes, "").length, 2);
+});
+
+test("notesInView scopes notes to notes, archive, and trash", () => {
+  const notes = [
+    createNote({ id: "active", title: "active" }),
+    createNote({ id: "archived", title: "archived", archived: true }),
+    createNote({ id: "trashed", title: "trashed", trashed: true }),
+  ];
+  assert.deepEqual(notesInView(notes, "notes").map((n) => n.id), ["active"]);
+  assert.deepEqual(notesInView(notes, "archive").map((n) => n.id), ["archived"]);
+  assert.deepEqual(notesInView(notes, "trash").map((n) => n.id), ["trashed"]);
+});
+
+test("topSearchResult returns the first ranked match in the requested view", () => {
+  const notes = [
+    createNote({ id: "body-match", title: "plain", body: "handoff" }),
+    createNote({ id: "title-match", title: "handoff", body: "" }),
+    createNote({ id: "archived-match", title: "handoff", archived: true }),
+    createNote({ id: "trashed-match", title: "handoff", trashed: true }),
+  ];
+  assert.equal(topSearchResult(notes, "notes", "handoff").id, "title-match");
+  assert.equal(topSearchResult(notes, "archive", "handoff").id, "archived-match");
+  assert.equal(topSearchResult(notes, "trash", "handoff").id, "trashed-match");
+});
+
+test("topSearchResult returns null for empty query or no match", () => {
+  const notes = [createNote({ title: "handoff" })];
+  assert.equal(topSearchResult(notes, "notes", ""), null);
+  assert.equal(topSearchResult(notes, "notes", "   "), null);
+  assert.equal(topSearchResult(notes, "notes", "missing"), null);
+  assert.equal(topSearchResult([], "notes", "handoff"), null);
 });
 
 test("searchNotes ignores precomposed accents in titles and bodies", () => {

@@ -190,6 +190,24 @@ export function searchNotes(notes, query) {
   return out;
 }
 
+/** Scope notes to the active view: notes, archive, or trash. */
+export function notesInView(notes, view) {
+  if (view === "archive") return notes.filter((n) => n.archived && !n.trashed);
+  if (view === "trash") return notes.filter((n) => n.trashed);
+  return notes.filter((n) => !n.archived && !n.trashed);
+}
+
+/**
+ * First ranked match for Enter-to-open in the given view, or null when the
+ * query is empty/whitespace or nothing matches. Callers keep the current
+ * selection and search focus in the null case.
+ */
+export function topSearchResult(notes, view, query) {
+  if (typeof query !== "string" || !query.trim()) return null;
+  const matches = searchNotes(notesInView(notes, view), query);
+  return matches.length ? matches[0].note : null;
+}
+
 /** Default note ordering for the sidebar: pinned first, then updated desc. */
 export function orderForList(notes) {
   return [...notes].sort((a, b) => {

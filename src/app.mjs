@@ -14,6 +14,8 @@ import {
   orderForList,
   deleteForever,
   emptyTrash,
+  notesInView,
+  topSearchResult,
 } from "./store.mjs";
 import { renderMarkdown } from "./markdown.mjs";
 import { createAutosave } from "./autosave.mjs";
@@ -217,10 +219,7 @@ function snippet(note) {
 }
 
 function visibleNotes() {
-  let notes;
-  if (state.view === "archive") notes = state.notes.filter((n) => n.archived && !n.trashed);
-  else if (state.view === "trash") notes = state.notes.filter((n) => n.trashed);
-  else notes = state.notes.filter((n) => !n.archived && !n.trashed);
+  const notes = notesInView(state.notes, state.view);
   if (state.query.trim()) {
     return searchNotes(notes, state.query).map((r) => r.note);
   }
@@ -763,6 +762,17 @@ searchToggle.addEventListener("click", openSearch);
 searchInput.addEventListener("input", () => {
   state.query = searchInput.value;
   renderList();
+});
+
+searchInput.addEventListener("keydown", (e) => {
+  if (e.key !== "Enter") return;
+  // During IME composition, Enter confirms the composition; do not open a note.
+  if (e.isComposing || e.keyCode === 229) return;
+  const match = topSearchResult(state.notes, state.view, searchInput.value);
+  if (!match) return; // Keep the current note and search focus.
+  e.preventDefault();
+  selectNote(match.id, { focusTitle: true });
+  if (isMobile()) setSidebarOpen(false);
 });
 
 // Keyboard shortcuts
